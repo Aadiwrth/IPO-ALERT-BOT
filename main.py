@@ -28,7 +28,7 @@ def send_email(email, subject, content):
                 "sender": {"name": FROM_NAME, "email": FROM_EMAIL},
                 "to": [{"email": email}],
                 "subject": subject,
-                "textContent": content
+                "htmlContent": content  # Changed to htmlContent for proper HTML rendering
             },
             timeout=10
         )
@@ -65,57 +65,155 @@ def main():
             prob = (ipo["shares_offered"] / TOTAL_APPS) * 100
             sug_qty = 10 if prob < 90 else "more than 10"
             suggestion = (
-                "Only 10 units can be allotted due to oversubscription."
+                "Conservative approach recommended due to high demand."
                 if prob < 90
-                else "You can apply for more than 10 units due to high probability."
+                else "Higher allocation possible due to favorable probability."
             )
-    body = f"""
-    <html>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <!-- Logo instead of multiple breaks -->
-        <div style="text-align:center; margin-bottom:20px;">
-            <img src="https://meroshare.cdsc.com.np/assets/img/brand-login.png" 
-                alt="Meroshare Logo" width="200" style="display:block; margin:auto;">
+
+            body = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPO Alert</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8f9fa;">
+    
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 40px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.5px;">
+                IPO Opening Alert
+            </h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px;">
+                Investment Opportunity Notification
+            </p>
         </div>
 
-        <h2 style="color:#2e86c1;">
-            <img data-emoji="🚀" class="an1" alt="🚀" aria-label="🚀" draggable="false" 
-                src="https://fonts.gstatic.com/s/e/notoemoji/16.0/1f680/72.png" loading="lazy"> 
-            IPO Alert: {ipo['company_name']} is now OPEN!
-        </h2>
+        <!-- Main Content -->
+        <div style="padding: 40px;">
+            
+            <!-- Company Alert -->
+            <div style="background-color: #e3f2fd; border-left: 4px solid #2196f3; padding: 20px; margin-bottom: 30px; border-radius: 0 8px 8px 0;">
+                <h2 style="color: #1976d2; margin: 0 0 8px 0; font-size: 20px; font-weight: 600;">
+                    {ipo['company_name']}
+                </h2>
+                <p style="color: #424242; margin: 0; font-size: 14px;">
+                    IPO is now open for subscription
+                </p>
+            </div>
 
-        <p style="font-size:16px;">Get ready to invest! Here's the important info:</p>
+            <!-- IPO Details -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #333; margin: 0 0 20px 0; font-size: 18px; font-weight: 600; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">
+                    Issue Details
+                </h3>
+                
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <tr>
+                        <td style="padding: 12px 0; color: #666; font-weight: 500; width: 40%; border-bottom: 1px solid #f5f5f5;">
+                            Company
+                        </td>
+                        <td style="padding: 12px 0; color: #333; font-weight: 600; border-bottom: 1px solid #f5f5f5;">
+                            {ipo['company_name']}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 0; color: #666; font-weight: 500; border-bottom: 1px solid #f5f5f5;">
+                            Symbol
+                        </td>
+                        <td style="padding: 12px 0; color: #333; font-weight: 600; border-bottom: 1px solid #f5f5f5;">
+                            {ipo['finid']}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 0; color: #666; font-weight: 500; border-bottom: 1px solid #f5f5f5;">
+                            Opening Date
+                        </td>
+                        <td style="padding: 12px 0; color: #333; font-weight: 600; border-bottom: 1px solid #f5f5f5;">
+                            {open_date}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 0; color: #666; font-weight: 500; border-bottom: 1px solid #f5f5f5;">
+                            Closing Date
+                        </td>
+                        <td style="padding: 12px 0; color: #333; font-weight: 600; border-bottom: 1px solid #f5f5f5;">
+                            {close_date}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 0; color: #666; font-weight: 500; border-bottom: 1px solid #f5f5f5;">
+                            Days Remaining
+                        </td>
+                        <td style="padding: 12px 0; color: #e65100; font-weight: 700; border-bottom: 1px solid #f5f5f5;">
+                            {rem_days} day{'s' if rem_days != 1 else ''}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 0; color: #666; font-weight: 500; border-bottom: 1px solid #f5f5f5;">
+                            Total Shares
+                        </td>
+                        <td style="padding: 12px 0; color: #333; font-weight: 600; border-bottom: 1px solid #f5f5f5;">
+                            {ipo['shares_offered']:,}
+                        </td>
+                    </tr>
+                </table>
+            </div>
 
-        <table style="border-collapse: collapse; width: 100%; max-width: 600px;">
-        <tr><td style="padding:8px;font-weight:bold">Scrip:</td><td style="padding:8px">{ipo['finid']}</td></tr>
-        <tr><td style="padding:8px;font-weight:bold">Company Name:</td><td style="padding:8px">{ipo['company_name']}</td></tr>
-        <tr><td style="padding:8px;font-weight:bold">Remaining Days:</td><td style="padding:8px">{rem_days} day(s) remaining</td></tr>
-        <tr><td style="padding:8px;font-weight:bold">Issue Date:</td><td style="padding:8px">{open_date}</td></tr>
-        <tr><td style="padding:8px;font-weight:bold">Issue Close Date:</td><td style="padding:8px">{close_date}</td></tr>
-        <tr><td style="padding:8px;font-weight:bold">Total Units:</td><td style="padding:8px">{ipo['shares_offered']:,}</td></tr>
-        <tr><td style="padding:8px;font-weight:bold">Probability of Allotment:</td><td style="padding:8px">{prob:.2f}%</td></tr>
-        <tr><td style="padding:8px;font-weight:bold">Suggested Quantity:</td><td style="padding:8px">{sug_qty}</td></tr>
-        <tr><td style="padding:8px;font-weight:bold">Suggestion:</td><td style="padding:8px">{suggestion}</td></tr>
-        </table>
+            <!-- Investment Analysis -->
+            <div style="background-color: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+                <h3 style="color: #333; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">
+                    Investment Analysis
+                </h3>
+                
+                <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <p style="margin: 0 0 8px 0; color: #666; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">
+                            Allotment Probability
+                        </p>
+                        <p style="margin: 0; font-size: 24px; font-weight: 700; color: {'#4caf50' if prob >= 50 else '#ff9800' if prob >= 20 else '#f44336'};">
+                            {prob:.1f}%
+                        </p>
+                    </div>
+                    <div style="flex: 1; min-width: 200px;">
+                        <p style="margin: 0 0 8px 0; color: #666; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">
+                            Recommended Quantity
+                        </p>
+                        <p style="margin: 0; font-size: 24px; font-weight: 700; color: #333;">
+                            {sug_qty} units
+                        </p>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px; padding: 15px; background-color: #ffffff; border-radius: 6px; border-left: 3px solid #2196f3;">
+                    <p style="margin: 0; color: #555; font-size: 14px; line-height: 1.5;">
+                        <strong>Recommendation:</strong> {suggestion}
+                    </p>
+                </div>
+            </div>
 
-        <p style="margin-top:20px; font-size:14px; color:#555;">
-            <img data-emoji="⚠️" class="an1" alt="⚠️" aria-label="⚠️" draggable="false" 
-                src="https://fonts.gstatic.com/s/e/notoemoji/16.0/26a0_fe0f/72.png" loading="lazy"> 
-            If this email landed in your spam folder, please mark it as <strong>Not Spam</strong> to get future alerts.
-        </p>
+        </div>
 
-        <p style="font-size:12px; color:#777;">
-            <img data-emoji="ℹ️" class="an1" alt="ℹ️" aria-label="ℹ️" draggable="false" 
-                src="https://fonts.gstatic.com/s/e/notoemoji/16.0/2139_fe0f/72.png" loading="lazy"> 
-            The number of total applications is assumed as {TOTAL_APPS:,} for probability calculation.
-        </p>
-    </body>
-    </html>
-    """
+        <!-- Footer -->
+        <div style="background-color: #f5f5f5; padding: 25px 40px; text-align: center; border-top: 1px solid #e0e0e0;">
+            <p style="margin: 0 0 10px 0; color: #666; font-size: 12px;">
+                This analysis is based on estimated total applications of {TOTAL_APPS:,}
+            </p>
+            <p style="margin: 0; color: #999; font-size: 11px;">
+                Please ensure this email is marked as "Not Spam" to receive future notifications
+            </p>
+        </div>
 
+    </div>
+</body>
+</html>
+"""
 
-    subject = f"🚀 IPO Alert: {ipo['company_name']} is now OPEN!"
-    send(TO_EMAIL, subject, body)
+            subject = f"IPO Alert: {ipo['company_name']} Now Open"
+            send(TO_EMAIL, subject, body)
 
 if __name__ == "__main__":
     main()
