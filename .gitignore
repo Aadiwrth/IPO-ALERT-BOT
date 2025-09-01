@@ -1,2 +1,6 @@
 .env
 .venv/
+app.py
+templates/
+ipo_bot.log
+email_update.txt
