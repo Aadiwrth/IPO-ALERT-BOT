@@ -1,4 +1,5 @@
 import os
+import threading
 import httpx
 from datetime import datetime
 from dotenv import load_dotenv
@@ -14,24 +15,33 @@ ONGOING_URL = os.getenv("ONGOING_URL")
 TOTAL_APPS = int(os.getenv("TOTAL_APPS", 2500000))
 
 
-# ===== EMAIL SENDER VIA BREVO =====
-def send_email(subject: str, body: str, to_email: str = TO_EMAIL):
-    url = "https://api.brevo.com/v3/smtp/email"
-    headers = {
-        "accept": "application/json",
-        "content-type": "application/json",
-        "api-key": API_KEY,
-    }
-    payload = {
-        "sender": {"name": FROM_NAME, "email": FROM_EMAIL},
-        "to": [{"email": to_email}],
-        "subject": subject,
-        "textContent": body,
-    }
-    with httpx.Client() as client:
-        r = client.post(url, headers=headers, json=payload)
-        r.raise_for_status()
-        print("✅ Email sent:", r.json())
+# ===== EMAIL SENDER VIA BREVO (THREAD SAFE) =====
+def send_email(email, subject, content):
+    try:
+        res = httpx.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "api-key": API_KEY,
+                "Content-Type": "application/json"
+            },
+            json={
+                "sender": {"name": FROM_NAME, "email": FROM_EMAIL},
+                "to": [{"email": email}],
+                "subject": subject,
+                "textContent": content
+            },
+            timeout=10
+        )
+        if res.status_code != 201:
+            print(f"[❌] Failed to send email to {email}: {res.text}")
+        else:
+            print(f"[✅] Email sent to {email}")
+    except Exception as e:
+        print(f"[⚠️] Error sending email to {email}: {e}")
+
+
+def send(email, subject, content):
+    threading.Thread(target=send_email, args=(email, subject, content)).start()
 
 
 # ===== MAIN LOGIC =====
@@ -49,9 +59,7 @@ def main():
 
         if open_date == today_str:
             # calc remaining days
-            rem_days = (
-                datetime.strptime(close_date, "%Y-%m-%d") - datetime.now()
-            ).days
+            rem_days = (datetime.strptime(close_date, "%Y-%m-%d") - datetime.now()).days
 
             # probability rough estimate
             prob = (ipo["shares_offered"] / TOTAL_APPS) * 100
@@ -61,27 +69,53 @@ def main():
                 if prob < 90
                 else "You can apply for more than 10 units due to high probability."
             )
+    body = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <!-- Logo instead of multiple breaks -->
+        <div style="text-align:center; margin-bottom:20px;">
+            <img src="https://meroshare.cdsc.com.np/assets/img/brand-login.png" 
+                alt="Meroshare Logo" width="200" style="display:block; margin:auto;">
+        </div>
 
-            body = f"""
-IPO Alert: {ipo['company_name']} IPO is now open!
+        <h2 style="color:#2e86c1;">
+            <img data-emoji="🚀" class="an1" alt="🚀" aria-label="🚀" draggable="false" 
+                src="https://fonts.gstatic.com/s/e/notoemoji/16.0/1f680/72.png" loading="lazy"> 
+            IPO Alert: {ipo['company_name']} is now OPEN!
+        </h2>
 
-Scrip: {ipo['finid']}
-Company Name: {ipo['company_name']}
-Remaining Days: {rem_days} days remaining
-Issue Date: {open_date}
-Issue Close Date: {close_date}
-Total Units: {ipo['shares_offered']:,}
-Probability of Allotment: {prob:.2f}%
-Suggested Quantity: {sug_qty}
-Suggestion: {suggestion}
+        <p style="font-size:16px;">Get ready to invest! Here's the important info:</p>
 
-If you find this email in your spam folder, please mark it as 'Not Spam' to receive future emails in your inbox.
+        <table style="border-collapse: collapse; width: 100%; max-width: 600px;">
+        <tr><td style="padding:8px;font-weight:bold">Scrip:</td><td style="padding:8px">{ipo['finid']}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold">Company Name:</td><td style="padding:8px">{ipo['company_name']}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold">Remaining Days:</td><td style="padding:8px">{rem_days} day(s) remaining</td></tr>
+        <tr><td style="padding:8px;font-weight:bold">Issue Date:</td><td style="padding:8px">{open_date}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold">Issue Close Date:</td><td style="padding:8px">{close_date}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold">Total Units:</td><td style="padding:8px">{ipo['shares_offered']:,}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold">Probability of Allotment:</td><td style="padding:8px">{prob:.2f}%</td></tr>
+        <tr><td style="padding:8px;font-weight:bold">Suggested Quantity:</td><td style="padding:8px">{sug_qty}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold">Suggestion:</td><td style="padding:8px">{suggestion}</td></tr>
+        </table>
 
-The number of total applications is assumed as {TOTAL_APPS:,} for probability calculation.
-"""
-            subject = f"IPO Alert: {ipo['company_name']} IPO is now open!"
-            send_email(subject, body)
+        <p style="margin-top:20px; font-size:14px; color:#555;">
+            <img data-emoji="⚠️" class="an1" alt="⚠️" aria-label="⚠️" draggable="false" 
+                src="https://fonts.gstatic.com/s/e/notoemoji/16.0/26a0_fe0f/72.png" loading="lazy"> 
+            If this email landed in your spam folder, please mark it as <strong>Not Spam</strong> to get future alerts.
+        </p>
 
+        <p style="font-size:12px; color:#777;">
+            <img data-emoji="ℹ️" class="an1" alt="ℹ️" aria-label="ℹ️" draggable="false" 
+                src="https://fonts.gstatic.com/s/e/notoemoji/16.0/2139_fe0f/72.png" loading="lazy"> 
+            The number of total applications is assumed as {TOTAL_APPS:,} for probability calculation.
+        </p>
+    </body>
+    </html>
+    """
+
+
+    subject = f"🚀 IPO Alert: {ipo['company_name']} is now OPEN!"
+    send(TO_EMAIL, subject, body)
 
 if __name__ == "__main__":
     main()
