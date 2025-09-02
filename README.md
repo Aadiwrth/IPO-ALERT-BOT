@@ -44,7 +44,7 @@ CHECK_INTERVAL_HOURS=5      # Frequency of checks
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/ipo-alert-bot.git
+git clone https://github.com/yourusername/IPO-ALERT-BOT.git
 cd ipo-alert-bot
 ```
 
