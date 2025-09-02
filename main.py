@@ -8,7 +8,9 @@ from dotenv import load_dotenv
 import logging
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-
+import discord
+from discord.ext import commands
+import asyncio
 class EmailFileHandler(FileSystemEventHandler):
     """Watch email_update.txt for changes"""
     def on_modified(self, event):
@@ -40,6 +42,42 @@ ONGOING_URL = os.getenv("ONGOING_URL")
 TOTAL_APPS = int(os.getenv("TOTAL_APPS", 2500000))
 CHECK_INTERVAL_HOURS = int(os.getenv("CHECK_INTERVAL_HOURS", 5))
 EMAIL_LIST_FILE = "email_update.txt"
+# Discord Configuration
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+DISCORD_GUILD_ID = 1411629709220909078
+DISCORD_CHANNEL_ID = 1412333785776656464
+
+
+# Discord Bot Setup
+intents = discord.Intents.default()
+intents.message_content = True
+discord_bot = commands.Bot(command_prefix='!', intents=intents)
+discord_ready = False
+
+
+# Store discord bot loop globally
+discord_loop = None
+
+@discord_bot.event
+async def on_ready():
+    global discord_ready, discord_loop
+    discord_ready = True
+    discord_loop = asyncio.get_running_loop()
+    logger.info(f'Discord bot logged in as {discord_bot.user}')
+    # Check if bot is in the specified guild
+    guild = discord_bot.get_guild(DISCORD_GUILD_ID)
+    if guild:
+        logger.info(f'Bot is in guild: {guild.name} (Members: {guild.member_count})')
+        
+        # Check if channel exists
+        channel = discord_bot.get_channel(DISCORD_CHANNEL_ID)
+        if channel:
+            logger.info(f'Target channel found: #{channel.name}')
+        else:
+            logger.warning(f'Target channel {DISCORD_CHANNEL_ID} not found')
+    else:
+        logger.warning(f'Bot is not in guild {DISCORD_GUILD_ID}')
+
 
 # Nepal timezone
 NEPAL_TZ = pytz.timezone('Asia/Kathmandu')
@@ -144,6 +182,153 @@ def send_bulk_emails(emails, subject, content):
 def send_bulk_emails_async(emails, subject, content):
     """Send bulk emails asynchronously"""
     threading.Thread(target=send_bulk_emails, args=(emails, subject, content)).start()
+
+
+async def create_discord_embed(ipo, rem_days, prob, sug_qty, suggestion):
+    """Create Discord embed for IPO alert"""
+    
+    # Determine color based on probability
+    if prob >= 50:
+        color = 0x4CAF50  # Green
+        prob_indicator = "🟢 High"
+    elif prob >= 20:
+        color = 0xFF9800  # Orange
+        prob_indicator = "🟡 Medium"
+    else:
+        color = 0xF44336  # Red
+        prob_indicator = "🔴 Low"
+    
+    embed = discord.Embed(
+        title=f"🚀 IPO Alert: {ipo['company_name']}",
+        description=f"**{ipo['company_name']}** IPO is now open for subscription!",
+        color=color,
+        timestamp=get_nepal_time()
+    )
+    
+    # Add company info
+    embed.add_field(
+        name="📊 Basic Information",
+        value=f"**Symbol:** {ipo['finid']}\n"
+              f"**Sector:** {ipo.get('Sector', 'N/A')}\n"
+              f"**Issue Manager:** {ipo.get('issue_manager', 'N/A')}",
+        inline=True
+    )
+    
+    # Add pricing and dates
+    embed.add_field(
+        name="💰 Pricing & Timeline",
+        value=f"**Offer Price:** NPR {ipo.get('offer_price', 'N/A')}\n"
+              f"**Opening:** {ipo['open_date'].split(' ')[0]}\n"
+              f"**Closing:** {ipo['close_date'].split(' ')[0]}",
+        inline=True
+    )
+    
+    # Add shares info
+    embed.add_field(
+        name="📈 Shares & Time",
+        value=f"**Total Shares:** {ipo['shares_offered']:,}\n"
+              f"**Days Remaining:** {rem_days} day{'s' if rem_days != 1 else ''}\n"
+              f"**⏰ Time Left:** {'⚠️ Limited' if rem_days <= 2 else '✅ Available'}",
+        inline=True
+    )
+    
+    # Add investment analysis
+    embed.add_field(
+        name="🎯 Investment Analysis",
+        value=f"**Allotment Probability:** {prob_indicator} ({prob:.1f}%)\n"
+              f"**Recommended Quantity:** {sug_qty} units\n"
+              f"**Strategy:** {suggestion}",
+        inline=False
+    )
+    
+    # Add action required section
+    embed.add_field(
+        name="⚡ Action Required",
+        value="IPO subscription window is now **OPEN**. Review and submit your application through your broker.",
+        inline=False
+    )
+    
+    # Add footer
+    embed.set_footer(
+        text=f"Based on estimated {TOTAL_APPS:,} total applications • Nepal Time",
+        icon_url="https://cdn.discordapp.com/attachments/123456789/chart_icon.png"
+    )
+    
+    # Add thumbnail (you can replace with actual company logo if available)
+    embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/123456789/ipo_icon.png")
+    
+    return embed
+
+
+async def send_discord_alert(ipo, rem_days, prob, sug_qty, suggestion):
+    """Send Discord alert to the specified channel"""
+    try:
+        if not discord_ready:
+            logger.warning("Discord bot not ready, skipping Discord alert")
+            return False
+        
+        channel = discord_bot.get_channel(DISCORD_CHANNEL_ID)
+        if not channel:
+            logger.error(f"Discord channel {DISCORD_CHANNEL_ID} not found")
+            return False
+        
+        embed = await create_discord_embed(ipo, rem_days, prob, sug_qty, suggestion)
+        
+        # Add @everyone mention for important IPO alerts
+        content = "🔔 **IPO ALERT** @everyone" if rem_days <= 3 else "🔔 **IPO ALERT**"
+        
+        await channel.send(content=content, embed=embed)
+        logger.info(f"Discord alert sent for {ipo['company_name']} to #{channel.name}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error sending Discord alert for {ipo.get('company_name', 'Unknown')}: {e}")
+        return False
+
+
+async def send_discord_system_notification(title, message, notification_type="info"):
+    """Send system notifications to Discord"""
+    try:
+        if not discord_ready:
+            return False
+        
+        channel = discord_bot.get_channel(DISCORD_CHANNEL_ID)
+        if not channel:
+            return False
+        
+        color_map = {
+            "success": 0x4CAF50,  # Green
+            "info": 0x2196F3,     # Blue
+            "warning": 0xFF9800,  # Orange
+            "error": 0xF44336     # Red
+        }
+        
+        icon_map = {
+            "success": "✅",
+            "info": "ℹ️",
+            "warning": "⚠️",
+            "error": "❌"
+        }
+        
+        color = color_map.get(notification_type, color_map["info"])
+        icon = icon_map.get(notification_type, "ℹ️")
+        
+        embed = discord.Embed(
+            title=f"{icon} {title}",
+            description=message,
+            color=color,
+            timestamp=get_nepal_time()
+        )
+        
+        embed.set_footer(text="IPO Alert System • Nepal Time")
+        
+        await channel.send(embed=embed)
+        logger.info(f"Discord system notification sent: {title}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error sending Discord system notification: {e}")
+        return False
 
 
 def create_email_body(ipo, rem_days, prob, sug_qty, suggestion):
@@ -481,86 +666,96 @@ def run_bot():
     global email_list
     email_list = load_email_list()  # Load initially
 
-    # Start file watcher
+    # Start file watcher (reloads email list if file changes)
     event_handler = EmailFileHandler()
     observer = Observer()
     observer.schedule(event_handler, path='.', recursive=False)
     observer.start()
-    
+
     logger.info("=== IPO Alert Bot Started ===")
     logger.info(f"Watching {EMAIL_LIST_FILE} for updates...")
-    
-    try:
-        while True:
-            try:
-                process_ipo_alerts()  # This uses the latest email_list
-                
-                # Sleep for the interval
-                next_check = get_nepal_time() + timedelta(hours=CHECK_INTERVAL_HOURS)
-                logger.info(f"Next check scheduled at: {next_check.strftime('%Y-%m-%d %H:%M:%S')} NPT")
-                time.sleep(CHECK_INTERVAL_HOURS * 3600)
-            
-            except Exception as e:
-                logger.error(f"Unexpected error in main loop: {e}")
-                time.sleep(300)  # Retry after 5 minutes
-    except KeyboardInterrupt:
-        logger.info("Bot stopped by user (Ctrl+C)")
-    finally:
-        observer.stop()
-        observer.join()
-        
-    logger.info("=== IPO Alert Bot Started ===")
     logger.info(f"Check interval: {CHECK_INTERVAL_HOURS} hours")
     logger.info(f"Nepal timezone: {NEPAL_TZ}")
     logger.info(f"Admin email: {ADMIN_EMAIL}")
-    logger.info(f"Email list file: {EMAIL_LIST_FILE}")
     logger.info("=====================================")
-    
-    # Send startup notification to admin only
+
+    # Send startup notification to admin email
     startup_subject = "IPO Alert Bot Started"
     startup_message = f"""✓ Bot is now monitoring IPO openings every {CHECK_INTERVAL_HOURS} hours<br>
 ✓ Using Nepal Time Zone (NPT)<br>
 ✓ Email list file: {EMAIL_LIST_FILE}<br>
 ✓ Ready to send alerts when IPOs open"""
-    
     startup_body = create_system_notification_body(
-        "IPO Alert Bot Status", 
-        startup_message, 
+        "IPO Alert Bot Status",
+        startup_message,
         "success"
     )
     # send_async(ADMIN_EMAIL, startup_subject, startup_body, True)
-    
-    while True:
-        try:
-            process_ipo_alerts()
-            
-            # Calculate next check time
-            next_check = get_nepal_time() + timedelta(hours=CHECK_INTERVAL_HOURS)
-            logger.info(f"Next check scheduled at: {next_check.strftime('%Y-%m-%d %H:%M:%S')} NPT")
-            logger.info(f"Sleeping for {CHECK_INTERVAL_HOURS} hours...")
-            
-            # Sleep for the specified interval
-            time.sleep(CHECK_INTERVAL_HOURS * 3600)  # Convert hours to seconds
-            
-        except KeyboardInterrupt:
-            logger.info("Bot stopped by user (Ctrl+C)")
-            break
-        except Exception as e:
-            logger.error(f"Unexpected error in main loop: {e}")
-            
-            # Send error notification to admin only
-            error_subject = "IPO Alert Bot Error"
-            error_message = f"IPO Alert Bot encountered an error and will attempt to continue:<br><br><code>{str(e)}</code>"
-            error_body = create_system_notification_body(
-                "Bot Error", 
-                error_message, 
-                "error"
-            )
-            # send_async(ADMIN_EMAIL, error_subject, error_body, True)
-            
-            logger.info("Continuing after error...")
-            time.sleep(300)  # Wait 5 minutes before retrying
 
+    try:
+        # Run Discord bot in a separate thread
+        def start_discord():
+            asyncio.run(discord_bot.start(DISCORD_TOKEN))
+
+        discord_thread = threading.Thread(target=start_discord, daemon=True)
+        discord_thread.start()
+
+        # Wait until Discord bot is ready
+        while not discord_ready or discord_loop is None:
+            logger.info("Waiting for Discord bot to be ready...")
+            time.sleep(2)
+
+        # # Send a test message to Discord
+        # if discord_ready and discord_loop:
+        #     asyncio.run_coroutine_threadsafe(
+        #         send_discord_system_notification(
+        #             "Bot Startup Test",
+        #             "✅ The IPO Alert Bot is online and ready to send notifications.",
+        #             "success"
+        #         ),
+        #         discord_loop
+        #     )
+
+        # Main IPO/email loop
+        while True:
+            try:
+                process_ipo_alerts()
+
+                next_check = get_nepal_time() + timedelta(hours=CHECK_INTERVAL_HOURS)
+                logger.info(f"Next check scheduled at: {next_check.strftime('%Y-%m-%d %H:%M:%S')} NPT")
+                logger.info(f"Sleeping for {CHECK_INTERVAL_HOURS} hours...")
+
+                time.sleep(CHECK_INTERVAL_HOURS * 3600)
+
+            except Exception as e:
+                logger.error(f"Unexpected error in main loop: {e}")
+
+                error_subject = "IPO Alert Bot Error"
+                error_message = f"IPO Alert Bot encountered an error and will attempt to continue:<br><br><code>{str(e)}</code>"
+                error_body = create_system_notification_body("Bot Error", error_message, "error")
+                # send_async(ADMIN_EMAIL, error_subject, error_body, True)
+
+                if discord_ready and discord_loop:
+                    asyncio.run_coroutine_threadsafe(
+                        send_discord_system_notification(
+                            "Bot Error",
+                            f"⚠️ An error occurred: `{str(e)}`\nContinuing after 5 minutes...",
+                            "error"
+                        ),
+                        discord_loop
+                    )
+
+                logger.info("Continuing after error...")
+                time.sleep(300)  # Retry after 5 min
+
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user (Ctrl+C)")
+
+    finally:
+        observer.stop()
+        observer.join()
+        if discord_bot.is_closed() is False and discord_loop:
+            asyncio.run_coroutine_threadsafe(discord_bot.close(), discord_loop)
 
 def test_connection():
     """Test API and email connectivity"""
