@@ -72,21 +72,21 @@ def main():
         discord_ready = wait_for_discord_ready()
         
         # Send Discord startup notification if ready
-        if discord_ready:
-            try:
-                asyncio.run_coroutine_threadsafe(
-                    discord_integration.send_system_notification(
-                        "Bot Startup",
-                        "✅ The IPO Alert Bot is online and ready to send notifications.",
-                        "success"
-                    ),
-                    discord_integration.get_loop()
-                ).result(timeout=5)
-            except Exception as e:
-                logger.warning(f"Failed to send Discord startup notification: {e}")
+        # if discord_ready:
+        #     try:
+        #         asyncio.run_coroutine_threadsafe(
+        #             discord_integration.send_system_notification(
+        #                 "Bot Startup",
+        #                 "✅ The IPO Alert Bot is online and ready to send notifications.",
+        #                 "success"
+        #             ),
+        #             discord_integration.get_loop()
+        #         ).result(timeout=5)
+        #     except Exception as e:
+        #         logger.warning(f"Failed to send Discord startup notification: {e}")
         
         # Send email startup notification
-        send_startup_notification()
+        # send_startup_notification()
         
         # Start file watcher for email list updates
         with FileWatcher(callback=ipo_processor.update_email_list):
