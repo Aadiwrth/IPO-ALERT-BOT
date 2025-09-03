@@ -1,5 +1,5 @@
-from ..config import ADMIN_EMAIL, EMAIL_LIST_FILE, CHECK_INTERVAL_HOURS, logger
-from ..utils import load_email_list
+from config import ADMIN_EMAIL, EMAIL_LIST_FILE, CHECK_INTERVAL_HOURS, logger
+from utils import load_email_list
 from .api_service import test_api_connection
 from .email_service import send_email
 from .email_templates import create_system_notification_email
@@ -7,7 +7,7 @@ from .email_templates import create_system_notification_email
 
 def test_all_connections():
     """Test API and email connectivity"""
-    logger.info("Testing connections...")
+    logger.info("Testing connections.")
     
     # Load and display email list
     email_list = load_email_list()

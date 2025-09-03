@@ -1,5 +1,5 @@
 import httpx
-from ..config import ONGOING_URL, logger
+from config import ONGOING_URL, logger
 
 
 def fetch_ipo_data():

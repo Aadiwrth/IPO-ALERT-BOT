@@ -1,7 +1,7 @@
 import time
 import threading
 import httpx
-from ..config import API_KEY, FROM_NAME, FROM_EMAIL, logger
+from config import API_KEY, FROM_NAME, FROM_EMAIL, logger
 
 
 def send_email(email, subject, content, is_system_notification=False):

@@ -1,8 +1,8 @@
 import asyncio
 import discord
 from discord.ext import commands
-from ..config import DISCORD_TOKEN, DISCORD_GUILD_ID, DISCORD_CHANNEL_ID, TOTAL_APPS, logger
-from ..utils import get_nepal_time
+from config import DISCORD_TOKEN, DISCORD_GUILD_ID, DISCORD_CHANNEL_ID, TOTAL_APPS, logger
+from utils import get_nepal_time
 
 
 class DiscordBot:

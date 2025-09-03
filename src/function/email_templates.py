@@ -1,5 +1,5 @@
-from ..config import TOTAL_APPS
-from ..utils import get_nepal_time
+from config import TOTAL_APPS
+from utils import get_nepal_time
 
 
 def create_ipo_alert_email(ipo, rem_days, prob, sug_qty, suggestion):

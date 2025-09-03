@@ -1,7 +1,7 @@
 import asyncio
 from datetime import timedelta
-from ..config import logger
-from ..utils import get_nepal_time, load_email_list, calculate_ipo_metrics
+from config import logger
+from utils import get_nepal_time, load_email_list, calculate_ipo_metrics
 from .api_service import fetch_ipo_data
 from .email_service import send_bulk_emails
 from .email_templates import create_ipo_alert_email

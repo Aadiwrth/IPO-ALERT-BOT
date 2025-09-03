@@ -1,7 +1,7 @@
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from ..config import EMAIL_LIST_FILE, logger
-from ..utils import load_email_list
+from config import EMAIL_LIST_FILE, logger
+from utils import load_email_list
 
 
 class EmailFileHandler(FileSystemEventHandler):

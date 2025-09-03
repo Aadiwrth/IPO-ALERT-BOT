@@ -11,12 +11,12 @@ import asyncio
 from datetime import timedelta
 
 # Import all modules
-from .config import validate_environment, CHECK_INTERVAL_HOURS, logger
-from .utils import get_nepal_time
-from .function.file_watcher import FileWatcher
-from .function.ipo_processor import IPOProcessor
-from .function.discord_integration import discord_integration
-from .function.test_service import test_all_connections, send_startup_notification, send_error_notification
+from config import validate_environment, CHECK_INTERVAL_HOURS, logger
+from utils import get_nepal_time
+from function.file_watcher import FileWatcher
+from function.ipo_processor import IPOProcessor
+from function.discord_integration import discord_integration
+from function.test_service import test_all_connections, send_startup_notification, send_error_notification
 
 
 def start_discord_bot():

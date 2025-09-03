@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from .config import NEPAL_TZ, EMAIL_LIST_FILE, logger
+from config import NEPAL_TZ, EMAIL_LIST_FILE, logger
 
 
 def get_nepal_time():
