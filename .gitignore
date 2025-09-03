@@ -4,3 +4,5 @@ app.py
 templates/
 ipo_bot.log
 email_update.txt
+/backup.py
+__pycache__/
