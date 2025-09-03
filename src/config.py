@@ -27,7 +27,8 @@ ONGOING_URL = os.getenv("ONGOING_URL")
 # ===== BOT CONFIGURATION =====
 TOTAL_APPS = int(os.getenv("TOTAL_APPS", 2500000))
 CHECK_INTERVAL_HOURS = int(os.getenv("CHECK_INTERVAL_HOURS", 5))
-EMAIL_LIST_FILE = "email_update.txt"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # <-- directory of config.py
+EMAIL_LIST_FILE = os.path.join(BASE_DIR, "email_update.txt")
 
 # ===== DISCORD CONFIGURATION =====
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
