@@ -34,17 +34,21 @@ The application follows a modular, service-oriented architecture for maximum mai
 
 ```
 ipo_alert_bot/
-├── 🎯 main.py                    # Application orchestrator
-├── ⚙️  config.py                  # Centralized configuration
-├── 🛠️  utils.py                   # Shared utilities
-├── 🌐 api_service.py             # External API integration
-├── 📧 email_service.py           # Email delivery service
-├── 🎨 email_templates.py         # HTML template engine
-├── 🤖 discord_integration.py     # Discord bot service  
-├── 👁️  file_watcher.py           # Real-time file monitoring
-├── 🔄 ipo_processor.py          # Core business logic
-├── 🔍 test_service.py           # Health check utilities
-└── 📋 requirements.txt          # Dependencies
+└── 📋 requirements.txt         # Dependencies
+├── 🎯 __run__.py                # Startup the Program
+├── src/
+      ├── 🎯 main.py                    # Application orchestrator
+      ├── ⚙️  config.py                  # Centralized configuration
+      ├── 🛠️  utils.py                   # Shared utilities
+      ├── function/
+            ├── 🌐 api_service.py             # External API integration
+            ├── 📧 email_service.py           # Email delivery service
+            ├── 🎨 email_templates.py         # HTML template engine
+            ├── 🤖 discord_integration.py     # Discord bot service  
+            ├── 👁️  file_watcher.py           # Real-time file monitoring
+            ├── 🔄 ipo_processor.py          # Core business logic
+            ├── 🔍 test_service.py           # Health check utilities
+ 
 ```
 
 ## 🛠️ Requirements
